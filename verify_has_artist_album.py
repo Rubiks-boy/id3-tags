@@ -39,5 +39,11 @@ for f in filez:
 
     if "artist" not in mp3file:
         print(f"No artist: {mp3file['title'][0]}")
+    elif ";" in mp3file["artist"][0]:
+        print(f"Multiple artists: {mp3file['title'][0]}")
+    elif mp3file["artist"] != mp3file["albumartist"]:
+        print(
+            f"Diff artist: {mp3file['title'][0]} {mp3file['artist'][0]} {mp3file['albumartist'][0]}"
+        )
     if "album" not in mp3file:
         print(f"No album: {mp3file['title'][0]}")
