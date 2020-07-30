@@ -33,6 +33,8 @@ print(f"Intaking {len(filez)} mp3 files")
 for f in filez:
     mp3file = MP3(f, ID3=EasyID3)
 
+    # Mp3 without metadata
+    # ex. this happens if you create the mp3 yourself
     if mp3file == {}:
         print(f"{f}: No metadata :(")
         continue
@@ -40,7 +42,9 @@ for f in filez:
     try:
         # grab artist, album artist, title metadata
         title = mp3file["title"]
-        assert len(title) == 1
+        assert (
+            len(title) == 1
+        )  # Pretty sure the library already makes sure this is true?
         title = title[0]
         if "artist" not in mp3file:
             print(f"{f} {title}:  no artist")
@@ -53,7 +57,8 @@ for f in filez:
         # separate into list
         curr_artists = artist.split("; ")
         # sanity check that the splitting worked
-        # goal: catch weird issues with "Foo" and "Foo " listing as two separate artists
+        # goal: catch weird issues with artist names like "Foo" vs. "Foo ",
+        # which would list as two separate artists
         for a in curr_artists:
             assert a.find(";") == -1
             assert a[0] != " "
@@ -67,6 +72,7 @@ for f in filez:
             albumartist = fpath[-3]
 
             # We cant trust this guess, so verify it against the artists list
+            # if it doesn't seem like a decent guess, don't process this song.
             if albumartist not in curr_artists:
                 print(f"{f} {title}:  no albumartist")
                 continue
@@ -76,6 +82,8 @@ for f in filez:
             assert len(albumartist) == 1
             albumartist = albumartist[0]
 
+            # One of the artists who wrote the songs _should_
+            # be the artist who made the album
             if albumartist not in curr_artists:
                 print(f"{f} {title}:  albumartist not in artists")
                 continue
@@ -90,6 +98,7 @@ for f in filez:
             new_title = f"{title} {feat_str(feat_artists)}"
 
             # save this new metadata
+            # "Foo" by A; B (album by A) -> "Foo (feat. B)" by A
             mp3file["artist"] = albumartist
             mp3file["title"] = new_title
             mp3file.save()
@@ -103,16 +112,18 @@ for f in filez:
 
             assert albumartist not in title
 
-            all_feats_in_title = True
+            is_all_feats_in_title = True
             for artist in feat_artists:
                 if artist not in title:
-                    all_feats_in_title = False
+                    is_all_feats_in_title = False
 
-            if all_feats_in_title:
+            if is_all_feats_in_title:
+                # "foo (feat. B)" by A; B -> "foo (feat. B)" by A
                 mp3file["artist"] = albumartist
                 mp3file.save()
                 print(f"\t{title},{albumartist},{title},{curr_artists}")
             else:
+                # ex. in case of "foo (feat. B)" by A; B; C, or "foo (feat. B)" by A; C
                 print(f"{f} {title}: feat field artists don't match artists in tags")
     except Exception as e:
         print(f)

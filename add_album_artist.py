@@ -1,27 +1,13 @@
-# Simple script for changing iTunes song metadata such that
-# multiple artists aren't listed as separate artists in id3 tags
-# and are instead put in as (feat. X and Y) in the song title
-# Motivation: cover flow on classic ipods will list these as
-# separate artists and albums, resulting in duplicate cover flow entries
-# and a gazillion more artists.
+# Some songs don't have the "albumartist" metadata tag.
+# Based on the artist metadata and also where the file is
+# (ex. iTunes media folder usually stores artist name in the directory)
+# this script will try to fill in the albumartist tag.
+# if it can't, it'll output the songs it doesn't know what to do with.
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 import mutagen.id3
 from mutagen.id3 import ID3, TIT2, TIT3, TALB, TPE1, TRCK, TYER
 import glob
-
-
-def feat_str(feat_artists):
-    """
-    Joins the featured artists in form "(feat. A, B and C)
-    No oxford comma, sorry folks
-    """
-    if len(feat_artists) == 1:
-        return f"(feat. {feat_artists[0]})"
-    else:
-        last_artist = feat_artists[-1]
-        other_artists = ", ".join(feat_artists[0:-1])
-        return f"(feat. {other_artists} and {last_artist})"
 
 
 # extract the file names (including folders)
@@ -34,12 +20,17 @@ modified = 0
 for f in filez:
     mp3file = MP3(f, ID3=EasyID3)
 
+    # Mp3 without metadata
+    # ex. this happens if you create the mp3 yourself
     if mp3file == {}:
         print(f"{f}: No metadata :(")
         continue
 
     if "albumartist" not in mp3file:
+        # itunes sometimes stores album artist within the directory
+        # try to use this to predict what the artist should be
         predicted_artist = f.split("/")[-3]
+
         artist = mp3file["artist"]
 
         if artist[0] == predicted_artist:
